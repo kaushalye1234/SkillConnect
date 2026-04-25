@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { workerAPI, bookingAPI, reviewAPI, complaintAPI } from '../api';
+import { workerAPI, reviewAPI, complaintAPI } from '../api';
 
 const STATUS_COLORS = {
   true: 'bg-green-50 text-green-600',
@@ -61,7 +61,6 @@ export default function AdminUsersPage() {
   const filteredUsers = roleFilter ? users.filter((u) => u.role === roleFilter) : users;
   const totalCustomers = users.filter((u) => u.role === 'customer').length;
   const totalWorkers = users.filter((u) => u.role === 'worker').length;
-  const totalSuppliers = users.filter((u) => u.role === 'supplier').length;
   const openComplaints = complaints.filter((c) => c.complaintStatus === 'pending').length;
 
   const TABS = [

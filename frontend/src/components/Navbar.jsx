@@ -94,6 +94,7 @@ export default function Navbar() {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadNotifications();
     }, [user?.userId]);
 
@@ -104,6 +105,7 @@ export default function Navbar() {
     }, [user?.userId]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setNotifOpen(false);
     }, [location.pathname]);
 

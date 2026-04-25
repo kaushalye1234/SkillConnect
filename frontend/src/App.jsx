@@ -21,6 +21,7 @@ import WorkerDetailPage from './pages/WorkerDetailPage';
 import WorkerSchedulePage from './pages/WorkerSchedulePage';
 import MessagesPage from './pages/MessagesPage';
 import ProfilePage from './pages/ProfilePage';
+import CustomerProfilePage from './pages/CustomerProfilePage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminReportsPage from './pages/AdminReportsPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -35,7 +36,7 @@ function AppLayout({ children }) {
         <div className="app-shell" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
             <Navbar />
             <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px', width: '100%', flex: 1 }}>
+                <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 32px', width: '100%', flex: 1 }}>
                     {children}
                 </div>
             </main>
@@ -73,6 +74,7 @@ function App() {
             <Route path="/messages" element={<ProtectedRoute><AppLayout><MessagesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/messages/:threadId" element={<ProtectedRoute><AppLayout><MessagesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
+            <Route path="/customers/:id" element={<ProtectedRoute><AppLayout><CustomerProfilePage /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><AppLayout><AdminUsersPage /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin']}><AppLayout><AdminReportsPage /></AppLayout></ProtectedRoute>} />
             <Route path="/admin/complaints" element={<ProtectedRoute roles={['admin']}><AppLayout><AdminComplaintsPage /></AppLayout></ProtectedRoute>} />

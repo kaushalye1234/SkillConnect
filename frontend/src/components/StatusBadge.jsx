@@ -1,4 +1,5 @@
 const STATUS_MAP = {
+  requested: 'badge-orange',
   pending: 'badge-yellow',
   open: 'badge-yellow',
   active: 'badge-yellow',
@@ -6,7 +7,7 @@ const STATUS_MAP = {
   assigned: 'badge-blue',
   accepted: 'badge-blue',
   investigating: 'badge-blue',
-  in_progress: 'badge-blue',
+  in_progress: 'badge-purple',
   completed: 'badge-green',
   resolved: 'badge-green',
   cancelled: 'badge-red',

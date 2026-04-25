@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
@@ -22,7 +22,7 @@ export default function LoginPage() {
     const [forgotEmail, setForgotEmail] = useState('');
     const [forgotMsg, setForgotMsg] = useState('');
 
-    const handleGoogleResponse = async (response) => {
+    const handleGoogleResponse = useCallback(async (response) => {
         setError(''); setLoading(true);
         try {
             const result = await googleLogin(response.credential);
@@ -41,7 +41,7 @@ export default function LoginPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [googleLogin, navigate]);
 
     useEffect(() => {
         if (!GOOGLE_CLIENT_ID || !window.google?.accounts) return;
@@ -49,12 +49,20 @@ export default function LoginPage() {
         if (googleBtnRef.current) {
             window.google.accounts.id.renderButton(googleBtnRef.current, { theme: 'outline', size: 'large', shape: 'pill', width: '100%' });
         }
-    }, []);
+    }, [handleGoogleResponse]);
 
     const handleLogin = async (e) => {
         e.preventDefault(); setError(''); setLoading(true);
         try { await login(form.email, form.password); }
-        catch (err) { setError(err.response?.data?.message || 'Login failed. Check your credentials.'); }
+        catch (err) {
+            if (err.response?.data?.message) {
+                setError(err.response.data.message);
+            } else if (!err.response || err.message === 'Network Error') {
+                setError('Network error: Cannot connect to the server. Please ensure the backend is running.');
+            } else {
+                setError('Login failed. Check your credentials.');
+            }
+        }
         finally { setLoading(false); }
     };
 

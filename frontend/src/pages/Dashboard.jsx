@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { workerAPI, jobAPI, bookingAPI, equipmentAPI } from '../api';
@@ -71,12 +71,12 @@ export default function Dashboard() {
             .filter((w) => w.start !== null && w.end !== null && w.end > w.start);
     };
 
-    const busySlotSet = new Set(
+    const busySlotSet = useMemo(() => new Set(
         (busySlotRows || []).map((row) => {
             const hhmm = String(row.scheduledTime || '').slice(0, 5);
             return `${row.scheduledDate}|${hhmm}`;
         })
-    );
+    ), [busySlotRows]);
 
     const isFreeSlot = (dateKey, minutes) => {
         const windows = getAvailabilityWindows(dateKey);

@@ -158,7 +158,13 @@ public class JobController {
             @PathVariable Long appId, @RequestBody ApplicationStatusRequest req, Authentication auth) {
         try {
             Integer userId = getUserId(auth);
-            JobApplication application = jobService.updateApplicationStatus(id, appId, userId, req.getStatus());
+            JobApplication application = jobService.updateApplicationStatus(
+                    id,
+                    appId,
+                    userId,
+                    req.getStatus(),
+                    req.getScheduledDate(),
+                    req.getScheduledTime());
             return ResponseEntity.ok(ApiResponse.ok("Application updated", application));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -203,6 +209,8 @@ public class JobController {
     @Data
     static class ApplicationStatusRequest {
         private String status;
+        private String scheduledDate;
+        private String scheduledTime;
     }
 
     @Data

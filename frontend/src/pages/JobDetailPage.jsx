@@ -33,6 +33,10 @@ export default function JobDetailPage() {
     const [complaintSubmitting, setComplaintSubmitting] = useState(false);
 
     const [isWorkerAccepted, setIsWorkerAccepted] = useState(false);
+    const [acceptingAppId, setAcceptingAppId] = useState(null);
+    const [acceptSchedule, setAcceptSchedule] = useState({ scheduledDate: '', scheduledTime: '' });
+    const [acceptSubmitting, setAcceptSubmitting] = useState(false);
+    const [acceptError, setAcceptError] = useState('');
 
     const isOwner = job?.customer?.user?.userId === user?.userId;
     const acceptedApplication = applications.find(a => String(a.status).toLowerCase() === 'accepted');
@@ -194,6 +198,44 @@ export default function JobDetailPage() {
         catch (err) { alert('Error: ' + (err.response?.data?.message || 'Failed')); }
     };
 
+    const openAcceptSchedule = (appId) => {
+        setAcceptingAppId(appId);
+        setAcceptSchedule({ scheduledDate: '', scheduledTime: '' });
+        setAcceptError('');
+    };
+
+    const closeAcceptSchedule = () => {
+        setAcceptingAppId(null);
+        setAcceptSchedule({ scheduledDate: '', scheduledTime: '' });
+        setAcceptError('');
+    };
+
+    const handleAcceptWithSchedule = async (appId) => {
+        const scheduledDate = acceptSchedule.scheduledDate?.trim();
+        const scheduledTime = acceptSchedule.scheduledTime?.trim();
+
+        if (!scheduledDate || !scheduledTime) {
+            setAcceptError('Please select both a date and time before accepting.');
+            return;
+        }
+
+        setAcceptSubmitting(true);
+        setAcceptError('');
+        try {
+            await jobAPI.updateApplication(id, appId, {
+                status: 'accepted',
+                scheduledDate,
+                scheduledTime,
+            });
+            closeAcceptSchedule();
+            loadApplications();
+        } catch (err) {
+            setAcceptError(err.response?.data?.message || 'Unable to accept application. Please try again.');
+        } finally {
+            setAcceptSubmitting(false);
+        }
+    };
+
     const handleMessageCustomer = async () => {
         const customerUserId = job?.customer?.user?.userId;
         if (!customerUserId) {
@@ -226,6 +268,13 @@ export default function JobDetailPage() {
     };
 
     const formatDate = (dt) => dt ? new Date(dt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+    const formatTime = (time) => {
+        if (!time) return '';
+        const parts = String(time).split(':');
+        if (parts.length < 2) return String(time);
+        return `${parts[0]}:${parts[1]}`;
+    };
+    const todayIso = new Date().toISOString().split('T')[0];
 
     if (loading) return (
         <div className="fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gap: 12, color: '#0891b2' }}>
@@ -332,6 +381,12 @@ export default function JobDetailPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#1e3a8a' }}>
                                 <span><strong>{getWorkerDisplay(acceptedApplication)}</strong></span>
                                 {acceptedApplication.proposedPrice && <span>Agreed price: LKR {acceptedApplication.proposedPrice}</span>}
+                                {(acceptedApplication.scheduledDate || acceptedApplication.scheduledTime) && (
+                                    <span>
+                                        Scheduled for: {acceptedApplication.scheduledDate ? formatDate(acceptedApplication.scheduledDate) : 'TBD'}
+                                        {acceptedApplication.scheduledTime ? ` at ${formatTime(acceptedApplication.scheduledTime)}` : ''}
+                                    </span>
+                                )}
                                 <span>Accepted on: {formatDate(acceptedApplication.updatedAt || acceptedApplication.appliedAt)}</span>
                             </div>
                         ) : (
@@ -353,12 +408,74 @@ export default function JobDetailPage() {
                                         </div>
                                         {a.status === 'pending' && (
                                             <div style={{ display: 'flex', gap: 6 }}>
-                                                <button className="btn-primary" style={{ padding: '5px 12px', fontSize: 11 }} disabled={!!acceptedApplication} onClick={() => handleAppAction(a.applicationId, 'accepted')}>Accept</button>
+                                                <button
+                                                    className="btn-primary"
+                                                    style={{ padding: '5px 12px', fontSize: 11 }}
+                                                    disabled={!!acceptedApplication}
+                                                    onClick={() => openAcceptSchedule(a.applicationId)}
+                                                >
+                                                    Accept
+                                                </button>
                                                 <button className="btn-danger" style={{ padding: '5px 12px', fontSize: 11 }} onClick={() => handleAppAction(a.applicationId, 'rejected')}>Reject</button>
                                             </div>
                                         )}
                                     </div>
                                     {a.coverNote && <p style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{a.coverNote}</p>}
+                                    {a.status === 'pending' && acceptingAppId === a.applicationId && (
+                                        <div style={{ marginTop: 10, padding: 12, borderRadius: 10, border: '1px solid #bfdbfe', background: '#eff6ff' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0c4a6e', marginBottom: 8 }}>
+                                                Schedule before accepting
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                                <div>
+                                                    <label className="hm-label" style={{ marginBottom: 4 }}>Date</label>
+                                                    <input
+                                                        type="date"
+                                                        className="hm-input"
+                                                        min={todayIso}
+                                                        value={acceptSchedule.scheduledDate}
+                                                        onChange={e => {
+                                                            setAcceptSchedule({ ...acceptSchedule, scheduledDate: e.target.value });
+                                                            if (acceptError) setAcceptError('');
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="hm-label" style={{ marginBottom: 4 }}>Time</label>
+                                                    <input
+                                                        type="time"
+                                                        className="hm-input"
+                                                        value={acceptSchedule.scheduledTime}
+                                                        onChange={e => {
+                                                            setAcceptSchedule({ ...acceptSchedule, scheduledTime: e.target.value });
+                                                            if (acceptError) setAcceptError('');
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {acceptError && (
+                                                <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{acceptError}</div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                                <button
+                                                    className="btn-primary"
+                                                    style={{ padding: '6px 12px', fontSize: 11 }}
+                                                    disabled={acceptSubmitting}
+                                                    onClick={() => handleAcceptWithSchedule(a.applicationId)}
+                                                >
+                                                    {acceptSubmitting ? 'Accepting...' : 'Confirm Accept'}
+                                                </button>
+                                                <button
+                                                    className="btn-secondary"
+                                                    style={{ padding: '6px 12px', fontSize: 11 }}
+                                                    disabled={acceptSubmitting}
+                                                    onClick={closeAcceptSchedule}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

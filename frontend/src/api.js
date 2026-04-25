@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8083/api';
+export const FILE_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
 const API = axios.create({
-    baseURL: 'http://localhost:8083/api',
+    baseURL: API_BASE_URL,
 });
 
 // Attach JWT token from localStorage to every request
@@ -42,6 +45,10 @@ export const authAPI = {
 export const profileAPI = {
     getMe: () => API.get('/profile/me'),
     updateMe: (data) => API.put('/profile/me', data),
+};
+
+export const userAPI = {
+    getProfile: (userId) => API.get(`/users/${userId}/profile`),
 };
 
 // Workers (Member 1 - User Management)
@@ -86,6 +93,8 @@ export const jobAPI = {
 };
 
 // Bookings (Member 3 - Booking Management)
+const unwrapData = (response) => response?.data?.data;
+
 export const bookingAPI = {
     create: (data) => API.post('/bookings', data),
     getAll: () => API.get('/bookings'),
@@ -97,6 +106,13 @@ export const bookingAPI = {
     getHistory: (id) => API.get(`/bookings/${id}/history`),
     getBusyDates: (workerId) => API.get(`/bookings/worker/${workerId}/busy-dates`),
     getBusySlots: (workerId) => API.get(`/bookings/worker/${workerId}/busy-slots`),
+    getStats: () => API.get('/bookings/stats'),
+    updateStatusData: async (id, status, reason) => unwrapData(await API.patch(`/bookings/${id}/status`, { status, reason })),
+    getMineData: async (as) => unwrapData(await API.get('/bookings/my', { params: { as } })) || [],
+    getByIdData: async (id) => unwrapData(await API.get(`/bookings/${id}`)),
+    getHistoryData: async (id) => unwrapData(await API.get(`/bookings/${id}/history`)) || [],
+    getBusyDatesData: async (workerId) => unwrapData(await API.get(`/bookings/worker/${workerId}/busy-dates`)) || [],
+    getBusySlotsData: async (workerId) => unwrapData(await API.get(`/bookings/worker/${workerId}/busy-slots`)) || [],
 };
 
 // Reviews & Complaints (Member 4)

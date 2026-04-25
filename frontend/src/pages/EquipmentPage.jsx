@@ -194,7 +194,7 @@ export default function EquipmentPage() {
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{
-              padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              padding: '10px 20px', borderRadius: 12, cursor: 'pointer',
               fontSize: 13, fontWeight: 700,
               background: tab === t.key ? 'linear-gradient(135deg,#f97316,#ea580c)' : '#fff',
               color: tab === t.key ? '#fff' : '#64748b',

@@ -178,8 +178,8 @@ export default function ReviewsPage() {
         } catch (err) { alert('Error: ' + (err.response?.data?.message || 'Failed to update')); }
     };
 
-    const deleteReview = async (id) => { if (!confirm('Delete this review?')) return; try { await reviewAPI.delete(id); loadReviews(); } catch (err) { alert('Failed'); } };
-    const deleteComplaint = async (id) => { if (!confirm('Delete this complaint?')) return; try { await complaintAPI.delete(id); loadComplaints(); } catch (err) { alert('Failed'); } };
+    const deleteReview = async (id) => { if (!confirm('Delete this review?')) return; try { await reviewAPI.delete(id); loadReviews(); } catch { alert('Failed'); } };
+    const deleteComplaint = async (id) => { if (!confirm('Delete this complaint?')) return; try { await complaintAPI.delete(id); loadComplaints(); } catch { alert('Failed'); } };
 
     return (
         <div className="fade-in">
@@ -205,7 +205,7 @@ export default function ReviewsPage() {
                 {[['reviews', '⭐ Reviews'], ['complaints', '📢 Complaints']].map(([t, label]) => (
                     <button key={t} onClick={() => setTab(t)}
                         style={{
-                            padding: '8px 18px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                            padding: '8px 18px', borderRadius: 10, cursor: 'pointer',
                             fontSize: 13, fontWeight: 700,
                             background: tab === t ? 'linear-gradient(135deg,#0891b2,#0e7490)' : '#fff',
                             color: tab === t ? '#fff' : '#64748b',

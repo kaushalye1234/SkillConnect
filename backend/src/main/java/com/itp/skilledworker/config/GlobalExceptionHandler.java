@@ -1,6 +1,7 @@
 package com.itp.skilledworker.config;
 
 import com.itp.skilledworker.dto.ApiResponse;
+import com.itp.skilledworker.exception.BookingException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +48,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(BookingException.class)
+    public ResponseEntity<ApiResponse<?>> handleBookingException(BookingException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -62,6 +68,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGeneral(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Internal server error: " + ex.getMessage()));
+                .body(ApiResponse.error("Internal server error"));
     }
 }

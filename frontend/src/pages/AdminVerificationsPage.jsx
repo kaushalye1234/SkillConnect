@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { verificationAPI } from '../api';
-
-const FILE_BASE_URL = 'http://localhost:8083';
+import { FILE_BASE_URL, verificationAPI } from '../api';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },

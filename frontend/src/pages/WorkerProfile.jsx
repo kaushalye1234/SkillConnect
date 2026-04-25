@@ -32,7 +32,7 @@ export default function WorkerProfile() {
         ]);
         if (workerRes.status === 'fulfilled') setWorker(workerRes.value?.data?.data);
         if (reviewsRes.status === 'fulfilled') setReviews(reviewsRes.value?.data?.data || []);
-      } catch (err) { setError('Failed to load worker profile.'); }
+      } catch { setError('Failed to load worker profile.'); }
       finally { setLoading(false); }
     };
     load();

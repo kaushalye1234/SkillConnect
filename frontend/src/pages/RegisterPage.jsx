@@ -75,7 +75,13 @@ export default function RegisterPage() {
       await register({ ...form, phone: normalizedPhone });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed.');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (!err.response || err.message === 'Network Error') {
+        setError('Network error: Cannot connect to the server. Please ensure the backend is running.');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

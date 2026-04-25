@@ -8,11 +8,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class JobService {
+    private static final int DEFAULT_BOOKING_DURATION_HOURS = 2;
+    private static final List<Booking.BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
+            Booking.BookingStatus.requested,
+            Booking.BookingStatus.accepted,
+            Booking.BookingStatus.in_progress);
 
     private final JobRepository jobRepository;
     private final JobCategoryRepository categoryRepository;
@@ -153,7 +160,7 @@ public class JobService {
 
     @Transactional
     public JobApplication updateApplicationStatus(Integer jobId, Long applicationId,
-            Integer customerUserId, String status) {
+            Integer customerUserId, String status, String scheduledDate, String scheduledTime) {
         Job job = getJobById(jobId);
         if (!job.getCustomer().getUser().getUserId().equals(customerUserId)) {
             throw new RuntimeException("Unauthorized: You don't own this job");
@@ -163,13 +170,41 @@ public class JobService {
         if (!application.getJob().getJobId().equals(jobId)) {
             throw new RuntimeException("Application does not belong to this job");
         }
-        application.setStatus(JobApplication.ApplicationStatus.valueOf(status.toLowerCase()));
 
-        if ("accepted".equalsIgnoreCase(status)) {
+        JobApplication.ApplicationStatus targetStatus = JobApplication.ApplicationStatus.valueOf(status.toLowerCase());
+
+        if (targetStatus == JobApplication.ApplicationStatus.accepted) {
+            LocalDate parsedScheduledDate;
+            LocalTime parsedScheduledTime;
+            if (scheduledDate == null || scheduledDate.isBlank()) {
+                throw new RuntimeException("scheduledDate is required when status is accepted");
+            }
+            if (scheduledTime == null || scheduledTime.isBlank()) {
+                throw new RuntimeException("scheduledTime is required when status is accepted");
+            }
+            try {
+                parsedScheduledDate = LocalDate.parse(scheduledDate);
+            } catch (DateTimeParseException ex) {
+                throw new RuntimeException("scheduledDate must be a valid ISO date (yyyy-MM-dd)");
+            }
+            try {
+                parsedScheduledTime = LocalTime.parse(scheduledTime);
+            } catch (DateTimeParseException ex) {
+                throw new RuntimeException("scheduledTime must be a valid ISO time (HH:mm or HH:mm:ss)");
+            }
+
+            WorkerProfile workerProfile = workerProfileRepository.findByUser_UserId(application.getWorkerUser().getUserId())
+                    .orElseThrow(() -> new RuntimeException("Worker profile not found for accepted user"));
+            Integer workerId = workerProfile.getWorkerId();
+
+            ensureNoActiveBookingForJobWorker(jobId, workerId);
+            ensureWorkerHasNoOverlappingActiveBooking(workerId, parsedScheduledDate, parsedScheduledTime);
+            createAcceptedBooking(job, workerProfile, parsedScheduledDate, parsedScheduledTime);
+
             List<JobApplication> others = jobApplicationRepository.findByJob_JobId(jobId);
             for (JobApplication other : others) {
                 if (!other.getApplicationId().equals(applicationId)
-                        && other.getStatus() == JobApplication.ApplicationStatus.pending) {
+                        && other.getStatus() != JobApplication.ApplicationStatus.rejected) {
                     other.setStatus(JobApplication.ApplicationStatus.rejected);
                     jobApplicationRepository.save(other);
                 }
@@ -184,7 +219,54 @@ public class JobService {
                     "You were selected for \"" + application.getJob().getJobTitle() + "\".",
                     "/jobs/" + application.getJob().getJobId());
         }
+        application.setStatus(targetStatus);
         return jobApplicationRepository.save(application);
+    }
+
+    private void ensureNoActiveBookingForJobWorker(Integer jobId, Integer workerId) {
+        long activeBookingCount = bookingRepository.countByJob_JobIdAndWorker_WorkerIdAndBookingStatusIn(
+                jobId,
+                workerId,
+                ACTIVE_BOOKING_STATUSES);
+        if (activeBookingCount > 0) {
+            throw new RuntimeException("An active booking already exists for this job and worker");
+        }
+    }
+
+    private void ensureWorkerHasNoOverlappingActiveBooking(Integer workerId, LocalDate date, LocalTime requestedStart) {
+        LocalTime requestedEnd = requestedStart.plusHours(DEFAULT_BOOKING_DURATION_HOURS);
+        List<BookingRepository.BookingOverlapProjection> dayBookings = bookingRepository.findConflictWindowData(
+                workerId,
+                date,
+                ACTIVE_BOOKING_STATUSES);
+
+        for (BookingRepository.BookingOverlapProjection existing : dayBookings) {
+            LocalTime existingStart = existing.getScheduledTime();
+            int existingDuration = resolveDurationHours(existing.getEstimatedDurationHours());
+            LocalTime existingEnd = existingStart.plusHours(existingDuration);
+            if (requestedStart.isBefore(existingEnd) && existingStart.isBefore(requestedEnd)) {
+                throw new RuntimeException("Selected slot overlaps with an existing booking");
+            }
+        }
+    }
+
+    private void createAcceptedBooking(Job job, WorkerProfile workerProfile, LocalDate scheduledDate, LocalTime scheduledTime) {
+        Booking booking = new Booking();
+        booking.setJob(job);
+        booking.setWorker(workerProfile);
+        booking.setCustomer(job.getCustomer());
+        booking.setBookingStatus(Booking.BookingStatus.accepted);
+        booking.setScheduledDate(scheduledDate);
+        booking.setScheduledTime(scheduledTime);
+        booking.setEstimatedDurationHours(DEFAULT_BOOKING_DURATION_HOURS);
+        bookingRepository.save(booking);
+    }
+
+    private int resolveDurationHours(Integer durationHours) {
+        if (durationHours == null || durationHours <= 0) {
+            return DEFAULT_BOOKING_DURATION_HOURS;
+        }
+        return durationHours;
     }
 
     public List<JobApplication> getWorkerApplications(Integer workerUserId) {

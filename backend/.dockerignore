@@ -1,0 +1,7 @@
+target
+uploads
+*.log
+compile_errors.txt
+backend_log.txt
+backend_console.log
+startup.log

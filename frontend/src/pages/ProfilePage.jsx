@@ -7,7 +7,6 @@ import DistrictSelect from '../components/DistrictSelect';
 export default function ProfilePage() {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
-    const [workerProfile, setWorkerProfile] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -30,7 +29,6 @@ export default function ProfilePage() {
             workerAPI.getMe()
                 .then(res => {
                     const p = res.data.data;
-                    setWorkerProfile(p);
                     setEditForm({
                         firstName: p.firstName || '', lastName: p.lastName || '',
                         bio: p.bio || '', city: p.city || '', district: p.district || '',
